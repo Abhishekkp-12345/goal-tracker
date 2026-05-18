@@ -120,6 +120,11 @@ const Auth = {
       const result = await firebaseAuth.signInWithPopup(googleProvider);
       return Auth._handleGoogleUser(result.user);
     } catch (err) {
+      // Domain not whitelisted in Firebase Console
+      if (err.code === 'auth/unauthorized-domain') {
+        const domain = window.location.hostname;
+        return { ok: false, error: `This domain (${domain}) is not authorised for Google Sign-In. Add it in Firebase Console → Authentication → Settings → Authorized Domains.` };
+      }
       // If popup blocked, fall back to redirect
       if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-cancelled-by-user') {
         try {
@@ -211,6 +216,8 @@ const Auth = {
       'auth/operation-not-allowed':    'This sign-in method is not enabled.',
       'auth/email-already-exists':     'An account with this email already exists.',
       'auth/invalid-login-credentials':'Incorrect email or password. Please try again.',
+      'auth/unauthorized-domain':      'This domain is not authorised for Google Sign-In. Contact the administrator.',
+      'auth/internal-error':           'An internal error occurred. Please try again.',
     };
     return map[err.code] || `${err.message} (${err.code})`;
   }

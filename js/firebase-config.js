@@ -26,8 +26,8 @@ const googleProvider = new firebase.auth.GoogleAuthProvider();
 googleProvider.addScope('profile');
 googleProvider.addScope('email');
 
-// Use the custom OAuth 2.0 client created for this project
+// NOTE: Do NOT pass client_id here — Firebase Auth manages its own OAuth
+// client internally. Only pass UI-level hints like `prompt`.
 googleProvider.setCustomParameters({
-  client_id: '564680676209-2799t2evgvrd1a9td068vl316r7h24m1.apps.googleusercontent.com',
-  prompt: 'select_account'   // always show account picker
+  prompt: 'select_account'   // always show the Google account picker
 });
