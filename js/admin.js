@@ -570,7 +570,6 @@ route('/admin/analytics', () => {
     if (ctxUom) new Chart(ctxUom, { type:'doughnut', data:{ labels:uomLabels, datasets:[{ data:Object.values(uomCount), backgroundColor:PALETTE, borderWidth:0, hoverOffset:6 }] }, options:{ cutout:'65%', plugins:{ legend:{ position:'bottom', labels:{ font:{family:'Outfit,Inter,sans-serif',size:11}, padding:12 } } } } });
   });
 });
-});
 
 // ══════════════════ GOAL UNLOCK (standalone function kept for backward compat) ══════════════════
 window.unlockGoal = function(goalId) {

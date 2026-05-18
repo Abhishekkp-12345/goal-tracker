@@ -5,21 +5,30 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>GoalTrack — Enterprise Goal Management Portal</title>
   <meta name="description" content="GoalTrack: Enterprise goal setting, quarterly check-ins, approval workflows and performance analytics for modern organisations."/>
-  <meta name="keywords" content="goal tracking, OKR, performance management, KPI, employee goals"/>
-  <meta name="author" content="GoalTrack"/>
-  <meta property="og:title" content="GoalTrack — Enterprise Goal Management"/>
-  <meta property="og:description" content="Set, track and achieve organisational goals with structured workflows and real-time analytics."/>
-  <meta property="og:type" content="website"/>
-  <meta name="twitter:card" content="summary_large_image"/>
   <meta name="theme-color" content="#4F46E5"/>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234F46E5'/><path d='M25 55l18 18L75 30' stroke='white' stroke-width='10' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>"/>
+  <!-- Unregister any stale service workers from previous dev builds -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (var r of registrations) { r.unregister(); }
+      });
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"/>
   <link rel="stylesheet" href="css/styles.css"/>
+  <!-- Firebase v12.13.0 compat -->
+  <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics-compat.js"></script>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <noscript><p style="padding:40px;font-family:sans-serif;text-align:center">GoalTrack requires JavaScript. Please enable it in your browser.</p></noscript>
 </head>
 <body>
+
+<!-- ══ LOADER ══ -->
 <div id="app-loader" style="position:fixed;inset:0;background:#fff;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .4s ease">
   <div style="width:48px;height:48px;background:linear-gradient(135deg,#4F46E5,#0EA5E9);border-radius:14px;display:flex;align-items:center;justify-content:center">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -29,8 +38,10 @@
   <style>@keyframes ldBar{from{opacity:.3;width:20px}to{opacity:1;width:60px}}</style>
 </div>
 
-<!-- ══ LOGIN ══ -->
+<!-- ══ LOGIN PAGE ══ -->
 <div id="login-page" style="display:flex">
+
+  <!-- LEFT PANEL -->
   <div class="login-left">
     <div>
       <div class="login-logo-wrap">
@@ -45,66 +56,202 @@
       </div>
       <div class="login-features">
         <div class="lf-item"><span class="lf-check">✓</span>Goal creation with approval workflows</div>
-        <div class="lf-item"><span class="lf-check">✓</span>Quarterly check-ins & progress tracking</div>
-        <div class="lf-item"><span class="lf-check">✓</span>Real-time analytics & completion dashboard</div>
-        <div class="lf-item"><span class="lf-check">✓</span>Full audit trail & compliance reporting</div>
+        <div class="lf-item"><span class="lf-check">✓</span>Quarterly check-ins &amp; progress tracking</div>
+        <div class="lf-item"><span class="lf-check">✓</span>Real-time analytics &amp; completion dashboard</div>
+        <div class="lf-item"><span class="lf-check">✓</span>Full audit trail &amp; compliance reporting</div>
         <div class="lf-item"><span class="lf-check">✓</span>Shared KPI push across departments</div>
       </div>
     </div>
-    <div class="login-stats">
-      <div class="ls-item"><div class="ls-val">100%</div><div class="ls-label">Weightage enforced</div></div>
-      <div class="ls-item"><div class="ls-val">4</div><div class="ls-label">Quarterly windows</div></div>
-      <div class="ls-item"><div class="ls-val">3</div><div class="ls-label">User roles</div></div>
-    </div>
   </div>
 
+  <!-- RIGHT PANEL -->
   <div class="login-right">
     <div class="login-form-wrap">
-      <div class="lf-header">
-        <h2>Sign in to GoalTrack</h2>
-        <p>Select a role to demo or sign in with your credentials</p>
-      </div>
 
-      <div class="quick-section">
-        <div class="quick-label">Quick Demo Access</div>
-        <div class="quick-grid">
-          <button class="quick-btn" data-email="alice@acme.com" data-pass="emp123">
-            <span class="qb-name">Alice Johnson</span><span class="qb-role">Employee · Sales</span>
+      <!-- STEP 1: ROLE PICKER -->
+      <div id="auth-role-select" class="auth-panel active">
+        <div class="lf-header" style="text-align:center;margin-bottom:32px">
+          <h2>Welcome to GoalTrack</h2>
+          <p>Select your role to continue</p>
+        </div>
+        <div class="role-grid">
+          <button class="role-card" data-role="admin">
+            <div class="role-card-icon" style="background:#EEF2FF;color:#4F46E5">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div class="role-card-name">Admin</div>
+            <div class="role-card-desc">HR &amp; System Management</div>
+            <div class="role-card-arrow">→</div>
           </button>
-          <button class="quick-btn" data-email="bob@acme.com" data-pass="emp123">
-            <span class="qb-name">Bob Smith</span><span class="qb-role">Employee · Ops</span>
+          <button class="role-card" data-role="manager">
+            <div class="role-card-icon" style="background:#F0F9FF;color:#0EA5E9">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            </div>
+            <div class="role-card-name">Manager</div>
+            <div class="role-card-desc">Team Goal Oversight</div>
+            <div class="role-card-arrow">→</div>
           </button>
-          <button class="quick-btn" data-email="carol@acme.com" data-pass="emp123">
-            <span class="qb-name">Carol Davis</span><span class="qb-role">Employee · Quality</span>
-          </button>
-          <button class="quick-btn" data-email="manager@acme.com" data-pass="manager123">
-            <span class="qb-name">Rajesh Kumar</span><span class="qb-role">Manager</span>
-          </button>
-          <button class="quick-btn span2" data-email="admin@acme.com" data-pass="admin123">
-            <span class="qb-name">Sarah Chen</span><span class="qb-role">Admin / HR</span>
+          <button class="role-card" data-role="employee">
+            <div class="role-card-icon" style="background:#ECFDF5;color:#10B981">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+            </div>
+            <div class="role-card-name">Employee</div>
+            <div class="role-card-desc">Personal Goal Tracking</div>
+            <div class="role-card-arrow">→</div>
           </button>
         </div>
       </div>
 
-      <div class="lf-divider">or enter credentials manually</div>
-
-      <form id="login-form">
-        <div class="form-group">
-          <label for="login-email">Email Address</label>
-          <input id="login-email" type="email" placeholder="you@company.com" required autocomplete="off"/>
+      <!-- STEP 2: LOGIN FORM (role-aware) -->
+      <div id="auth-signin" class="auth-panel">
+        <div class="auth-back-row">
+          <a href="#" id="back-to-roles" class="auth-back-link">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            Change role
+          </a>
+          <span class="role-pill" id="signin-role-pill">Employee</span>
         </div>
-        <div class="form-group">
-          <label for="login-pass">Password</label>
-          <input id="login-pass" type="password" placeholder="Enter your password" required/>
+        <div class="lf-header">
+          <h2>Sign in</h2>
+          <p id="signin-subtitle">Sign in to your GoalTrack account</p>
         </div>
-        <div id="login-err" class="form-error" style="margin-bottom:12px"></div>
-        <button type="submit" class="btn btn-primary btn-full btn-lg">Sign In →</button>
-      </form>
 
-      <div class="lf-creds">
-        <strong>Demo credentials</strong><br>
-        alice@acme.com / emp123 &nbsp;·&nbsp; manager@acme.com / manager123 &nbsp;·&nbsp; admin@acme.com / admin123
+        <!-- Google — shown for Employee only -->
+        <button id="google-signin-btn" class="btn-google" type="button" style="display:none">
+          <svg width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="none" d="M0 0h48v48H0z"/>
+          </svg>
+          Continue with Google
+        </button>
+        <div id="google-divider" class="lf-divider" style="display:none"><span>or sign in with email</span></div>
+
+        <form id="login-form" novalidate>
+          <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <input id="login-email" type="email" placeholder="you@company.com" required autocomplete="email"/>
+          </div>
+          <div class="form-group">
+            <label for="login-pass">
+              Password
+              <a href="#" id="forgot-pass-link" class="forgot-link" tabindex="-1">Forgot password?</a>
+            </label>
+            <div class="input-password-wrap">
+              <input id="login-pass" type="password" placeholder="Enter your password" required autocomplete="current-password"/>
+              <button type="button" class="toggle-pass" data-target="login-pass">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- Access Code — Admin/Manager only -->
+          <div class="form-group" id="access-code-group" style="display:none">
+            <label for="login-access-code">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              Access Code
+            </label>
+            <div class="input-password-wrap">
+              <input id="login-access-code" type="password" placeholder="Enter your access code" autocomplete="off"/>
+              <button type="button" class="toggle-pass" data-target="login-access-code">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="access-code-hint" id="access-code-hint"></div>
+          </div>
+          <div id="login-err" class="form-error"></div>
+          <button type="submit" id="login-submit-btn" class="btn btn-primary btn-full btn-lg">
+            <span class="btn-text">Sign In →</span>
+            <span class="btn-spinner" style="display:none"></span>
+          </button>
+        </form>
+
+        <!-- Register link — Employee only -->
+        <p class="auth-switch" id="register-switch" style="display:none">
+          Don't have an account? <a href="#" id="go-register-link">Create one →</a>
+        </p>
+        <!-- First-time register — Admin/Manager only -->
+        <p class="auth-switch" id="priv-register-switch" style="display:none">
+          First time here? <a href="#" id="go-priv-register-link">Create your account →</a>
+        </p>
       </div>
+
+      <!-- STEP 3: REGISTER -->
+      <div id="auth-register" class="auth-panel">
+        <div class="auth-back-row">
+          <a href="#" id="back-to-signin" class="auth-back-link">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to sign in
+          </a>
+          <span class="role-pill" id="reg-role-pill" style="background:#ECFDF5;color:#065F46">Employee</span>
+        </div>
+        <div class="lf-header">
+          <h2>Create account</h2>
+          <p id="reg-subtitle">Join GoalTrack as an Employee</p>
+        </div>
+        <button id="google-register-btn" class="btn-google" type="button">
+          <svg width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="none" d="M0 0h48v48H0z"/>
+          </svg>
+          Sign up with Google
+        </button>
+        <div class="lf-divider"><span>or register with email</span></div>
+        <form id="register-form" novalidate>
+          <div class="form-group">
+            <label for="reg-name">Full Name</label>
+            <input id="reg-name" type="text" placeholder="Jane Doe" required autocomplete="name"/>
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Email Address</label>
+            <input id="reg-email" type="email" placeholder="you@company.com" required autocomplete="email"/>
+          </div>
+          <div class="form-group">
+            <label for="reg-pass">Password</label>
+            <div class="input-password-wrap">
+              <input id="reg-pass" type="password" placeholder="At least 6 characters" required autocomplete="new-password"/>
+              <button type="button" class="toggle-pass" data-target="reg-pass">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="reg-pass2">Confirm Password</label>
+            <div class="input-password-wrap">
+              <input id="reg-pass2" type="password" placeholder="Re-enter password" required autocomplete="new-password"/>
+              <button type="button" class="toggle-pass" data-target="reg-pass2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <!-- Access Code — Admin/Manager registration only -->
+          <div class="form-group" id="reg-access-code-group" style="display:none">
+            <label for="reg-access-code">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:middle;margin-right:4px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+              Access Code
+            </label>
+            <div class="input-password-wrap">
+              <input id="reg-access-code" type="password" placeholder="Enter your role access code" autocomplete="off"/>
+              <button type="button" class="toggle-pass" data-target="reg-access-code">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div id="register-err" class="form-error"></div>
+          <button type="submit" id="register-submit-btn" class="btn btn-primary btn-full btn-lg">
+            <span class="btn-text">Create Account →</span>
+            <span class="btn-spinner" style="display:none"></span>
+          </button>
+        </form>
+        <p class="auth-switch">
+          Already have an account? <a href="#" id="go-login-link">Sign in →</a>
+        </p>
+      </div>
+
     </div>
   </div>
 </div>
@@ -132,7 +279,6 @@
       </button>
     </div>
   </aside>
-
   <main id="main">
     <header id="topbar">
       <div class="topbar-left">
@@ -161,6 +307,7 @@
 <div id="toast-container"></div>
 
 <script src="js/data.js"></script>
+<script src="js/firebase-config.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/app.js"></script>
 <script src="js/employee.js"></script>
